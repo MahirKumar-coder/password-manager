@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const { MongoClient } = require('mongodb');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+require('dotenv').config();
 
 dotenv.config();
 
@@ -12,11 +13,10 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(cors());
 
-const url = process.env.MONGODB_URI;
+const uri = process.env.MONGODB_URI;
 const dbName = 'passOp';
 
-let client;
-let db;
+let client, db;
 
 // MongoDB connection function with proper error handling
 async function connectDB() {
@@ -39,31 +39,38 @@ async function connectDB() {
   return db;
 }
 
+async function connectDB() {
+  if (!db) {
+    client = new MongoClient(uri, {
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000
+    });
+    await client.connect();
+    db = client.db('passOp');
+  }
+  return db;
+}
+
 app.get('/debug', (req, res) => {
   res.json({
     MONGODB_URI_exists: Boolean(process.env.MONGODB_URI),
-    MONGODB_URI_preview: process.env.MONGODB_URI
-      ? process.env.MONGODB_URI.slice(0, 20) + '…'
-      : null
+    env: Object.keys(process.env)
   });
 });
 
+
 app.get('/', (req, res) => {
-  res.json({ message: 'Hello from Vercel!' });
+  res.json({ ok: true, timestamp: new Date().toISOString() });
 });
 
 app.get('/', async (req, res) => {
   try {
     const database = await connectDB();
-    const collection = database.collection('passwords');
-    const findResult = await collection.find({}).toArray();
-    res.json(findResult);
-  } catch (error) {
-    console.error('GET / error:', error);
-    res.status(500).json({
-      error: 'Database connection failed',
-      message: error.message
-    });
+    const data = await database.collection('passwords').find().toArray();
+    res.json(data);
+  } catch (err) {
+    console.error('Runtime Error:', err);
+    res.status(500).json({ error: err.message });
   }
 });
 
