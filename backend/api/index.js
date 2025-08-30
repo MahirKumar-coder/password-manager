@@ -60,7 +60,7 @@ app.get('/debug', (req, res) => {
 
 
 app.get('/', (req, res) => {
-  res.json({ ok: true, timestamp: new Date().toISOString() });
+  res.json({ message: 'API is working!' });
 });
 
 app.get('/', async (req, res) => {
